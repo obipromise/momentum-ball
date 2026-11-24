@@ -65,11 +65,31 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #rotate{position:fixed;inset:0;z-index:50;background:#14161a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;font-weight:800;font-size:22px}
 #rotate svg{width:64px;height:64px;stroke:#fff;fill:none;stroke-width:2;animation:rot 2s ease-in-out infinite}
 @keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
-@media (orientation:portrait) and (pointer:coarse){#rotate{display:flex}}
+
 .ostats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .ostats div{background:rgba(255,255,255,.06);border-radius:10px;padding:8px;text-align:center}
 .ostats .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}.ostats .v{font-family:var(--mono);font-size:18px}
-@media (prefers-reduced-motion:reduce){#rotate svg{animation:none}}
+#prog{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);width:min(46vw,420px);display:flex;flex-direction:column;gap:5px;align-items:center}
+#prog .pl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:800}
+#prog .pbar{width:100%;height:8px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+#prog .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffb547,#fff1c9);transition:width .2s}
+#prog #wx{position:static;transform:none;font-size:10px}
+@media (max-aspect-ratio:1/1){#prog{top:calc(max(12px,env(safe-area-inset-top)) + 66px);width:72vw}}
+.missions{display:flex;flex-direction:column;gap:6px}
+.missions .m{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 10px}
+.missions .m span:last-child{font-family:var(--mono);color:var(--accent);white-space:nowrap}
+.tut{max-width:460px}
+.tut .stage{position:relative;height:150px;border-radius:14px;background:rgba(255,255,255,.05);overflow:hidden}
+.tut .ballico{position:absolute;left:50%;top:58%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#9aa3ad 45%,#3a3f46)}
+.tut .hand{position:absolute;left:50%;top:58%;width:34px;height:34px;margin:4px 0 0 -2px;border-radius:50% 50% 50% 8px;background:rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.tut .hand.swipe{animation:sw 2.4s ease-in-out infinite}.tut .hand.tilt{display:none}.tut .hand.tap{animation:tp 2s ease-in-out infinite}
+.tut .phone{position:absolute;left:50%;top:50%;width:120px;height:66px;margin:-33px 0 0 -60px;border:3px solid #fff;border-radius:12px;animation:tl 2.4s ease-in-out infinite;display:none}
+.tut .phone.on{display:block}
+@keyframes sw{0%{transform:translate(0,0)}25%{transform:translate(0,-50px)}45%{transform:translate(0,30px)}70%{transform:translate(-50px,0)}90%{transform:translate(50px,0)}100%{transform:translate(0,0)}}
+@keyframes tp{0%,100%{transform:translate(-120px,0)}50%{transform:translate(120px,0)}}
+@keyframes tl{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
+.tut ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.45}
+@media (prefers-reduced-motion:reduce){#rotate svg,.tut .hand,.tut .phone{animation:none}}
 </style>
 </head>
 <body>
@@ -82,7 +102,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <div class="chip stat"><div><div class="k">Distance</div><div class="v" id="hDist">0</div></div><div><div class="k">Coins</div><div class="v" id="hCoins">0</div></div></div>
     <div class="fx" id="hFx"></div>
   </div>
-  <div id="wx">Clear day</div>
+  <div id="prog"><div class="pl" id="pLbl">Level 1</div><div class="pbar"><i id="pFill"></i></div><div id="wx">Clear day</div></div>
   <div class="tr">
     <button class="ib" id="bSnd" aria-label="Sound"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
     <button class="ib" id="bPause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button>
@@ -102,9 +122,11 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     </div>
     <div class="card">
       <button class="btn go" id="bPlay">Roll</button>
-      <div class="opt"><span>Steering</span><div class="seg" id="sCtl"><button data-v="tilt">Tilt</button><button data-v="touch">Tap sides</button></div></div>
+      <div class="opt"><span>Controls</span><div class="seg" id="sCtl"><button data-v="tilt">Tilt</button><button data-v="tap">Tap sides</button><button data-v="swipe">Swipe</button></div></div>
       <div class="opt"><span>Graphics</span><div class="seg" id="sQ"><button data-v="high">Pretty</button><button data-v="low">Fast</button></div></div>
       <div class="how" id="how"></div>
+      <div class="sub" style="font-size:11px">Missions</div><div class="missions" id="tMissions"></div>
+      <button class="btn" id="bHow">How to play</button>
       <div class="legend">
         <span><span class="dot" style="background:#ffc24a"></span><b>×2</b> double coins</span>
         <span><span class="dot" style="background:#ff5a5a"></span><b>Magnet</b> pulls coins</span>
@@ -130,6 +152,17 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   </div>
   <div class="row"><button class="btn" id="oMenu">Menu</button><button class="btn go" id="oAgain">Roll again</button></div></div></div>
 
+<div class="layer" id="scrTut" hidden><div class="card tut">
+  <div class="sub" id="tutMode">How to play</div>
+  <div class="stage"><div class="ballico"></div><div class="hand" id="tutHand"></div><div class="phone" id="tutPhone"></div></div>
+  <ol id="tutSteps"></ol>
+  <button class="btn go" id="tutGo">Let's roll</button></div></div>
+<div class="layer" id="scrWin" hidden><div class="card" style="max-width:520px">
+  <div class="sub" style="color:var(--accent)">Level complete</div>
+  <div class="title" style="font-size:48px" id="wTitle">Level 1</div>
+  <div class="ostats"><div><div class="k">Time</div><div class="v" id="wTime">0</div></div><div><div class="k">Coins</div><div class="v" id="wCoins">0</div></div><div><div class="k">Falls</div><div class="v" id="wFalls">0</div></div><div><div class="k">Total</div><div class="v" id="wTotal">0</div></div></div>
+  <div class="missions" id="wMissions"></div>
+  <div class="row"><button class="btn" id="wMenu">Menu</button><button class="btn go" id="wNext">Next level</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (() => {
@@ -142,7 +175,8 @@ const $ = s => document.querySelector(s);
 const PI = Math.PI, R2 = PI / 2, clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t, rnd = (a, b) => a + Math.random() * (b - a), pick = a => a[Math.random() * a.length | 0];
 const store = { get(k, d) { try { const v = localStorage.getItem('mo_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('mo_' + k, JSON.stringify(v)); } catch (e) {} } };
 const touch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
-const cfg = Object.assign({ ctl: touch ? 'tilt' : 'touch', q: touch ? 'low' : 'high', snd: true }, store.get('cfg', {}));
+const cfg = Object.assign({ ctl: touch ? 'swipe' : 'tap', q: touch ? 'low' : 'high', snd: true }, store.get('cfg', {}));
+if (cfg.ctl === 'touch') cfg.ctl = 'tap';
 const saveCfg = () => store.set('cfg', cfg), HIGH = cfg.q === 'high';
 
 /* ---------- 1. renderer ---------- */
@@ -269,8 +303,18 @@ const gateMat = {}; SKINS.forEach(s => gateMat[s.id] = new THREE.MeshPhysicalMat
 const track = [], items = [];
 const T = { z: 0, x: 0, y: 0, surf: 'concrete', zoneLeft: 0, n: 0, lastW: 9 };
 function mesh(geo, mat, x, y, z, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; }
+function addFinish() {
+  const z0 = T.z, l = 18, z1 = z0 - l, cz = (z0 + z1) / 2, S2 = SURF[T.surf];
+  const seg = { z0, z1, x: T.x, y: T.y, w: 10, l, surf: T.surf, rails: [true, true], meshes: [], obs: [], gapBefore: 0 };
+  seg.meshes.push(mesh(slabGeo(10, l), [S2.top, S2.side], T.x, T.y, cz));
+  for (const sd of [-1, 1]) { const p = mesh(G.cyl, MAT.chrome, T.x + sd * 4.6, T.y + 2.6, z0 - 8); p.scale.set(0.18, 5.2, 0.18); seg.meshes.push(p); }
+  const tex = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 64; const g = c.getContext('2d'); for (let i = 0; i < 32; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#111' : '#fff'; g.fillRect(i * 16, j * 16, 16, 16); } g.fillStyle = '#ffb547'; g.fillRect(176, 0, 160, 64); g.fillStyle = '#111'; g.font = 'bold 40px Arial'; g.textAlign = 'center'; g.fillText('FINISH', 256, 47); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+  const b = mesh(G.box, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5 }), T.x, T.y + 5.0, z0 - 8); b.scale.set(9.6, 1.2, 0.3); seg.meshes.push(b);
+  track.push(seg); S.finishZ = z0 - 8; T.z = z1; T.done = true;
+}
 function addSegment(first) {
-  const diff = Math.min(1, T.n / 60);
+  if (!first && -T.z > S.levelLen) return addFinish();
+  const diff = Math.min(1, (T.n + S.level * 8) / 70);
   if (T.zoneLeft <= 0) { T.surf = first ? 'concrete' : pick(SURF_KEYS.filter(k => k !== T.surf)); T.zoneLeft = rnd(110, 170); }
   // gap before this piece (jump or a pad on the previous one)
   let gap = 0;
@@ -279,9 +323,9 @@ function addSegment(first) {
   const w = first ? 9 : narrow ? pick([2.6, 3.2]) : pick([5, 6.5, 8, 9]);
   const l = first ? 30 : narrow ? pick([10, 14, 18]) : pick([14, 18, 24, 30]);
   if (!first) { const shift = Math.random() < 0.5 ? 0 : rnd(-1, 1) * Math.min(3, (T.lastW + w) / 4); T.x = clamp(T.x + shift, -8, 8); if (Math.random() < 0.18) T.y -= rnd(0.6, 1.6); }
-  const z0 = T.z - gap, z1 = z0 - l, cz = (z0 + z1) / 2, S = SURF[T.surf];
+  const z0 = T.z - gap, z1 = z0 - l, cz = (z0 + z1) / 2, SF = SURF[T.surf];
   const seg = { z0, z1, x: T.x, y: T.y, w, l, surf: T.surf, rails: [false, false], meshes: [], obs: [], gapBefore: gap };
-  seg.meshes.push(mesh(slabGeo(w, l), [S.top, S.side], T.x, T.y, cz));
+  seg.meshes.push(mesh(slabGeo(w, l), [SF.top, SF.side], T.x, T.y, cz));
   // guard rails on some pieces (never on the narrowest bridges, which are the challenge)
   if (!first && !narrow && Math.random() < 0.35) { const both = Math.random() < 0.5, side = Math.random() < 0.5 ? 0 : 1; seg.rails = [both || side === 0, both || side === 1];
     for (let s = 0; s < 2; s++) if (seg.rails[s]) { const rx = T.x + (s ? 1 : -1) * (w / 2 - 0.2);
@@ -334,13 +378,14 @@ const S = { state: 'title', t: 0, dist: 0, coins: 0, top: 0, fx: {}, shake: 0, f
 const q = new THREE.Quaternion(), tmpV = new THREE.Vector3(), axis = new THREE.Vector3();
 function reset() {
   track.forEach(dropSeg); items.forEach(dropItem); track.length = 0; items.length = 0;
-  Object.assign(T, { z: 10, x: 0, y: 0, surf: 'concrete', zoneLeft: 0, n: 0, lastW: 9 });
+  Object.assign(T, { z: 10, x: 0, y: 0, surf: 'concrete', zoneLeft: 0, n: 0, lastW: 9, done: false });
   Object.assign(P, { x: 0, y: BALL_R, z: 0, vx: 0, vy: 0, vz: -9, ground: null, air: 0, scale: 1 }); setSkin(SKINS[0], true);
-  Object.assign(S, { t: 0, dist: 0, coins: 0, top: 0, fx: {}, shake: 0, lastSafe: null, ts: 1 });
-  addSegment(true); while (T.z > -180) addSegment(false);
+  Object.assign(S, { t: 0, dist: 0, coins: 0, top: 0, fx: {}, shake: 0, lastSafe: null, ts: 1, level: store.get('level', 1), falls: 0, tv: 0, finishZ: null });
+  S.levelLen = 200 + S.level * 70;
+  addSegment(true); while (T.z > -180 && !T.done) addSegment(false);
   ball.quaternion.identity();
 }
-function setSkin(s, quiet) { P.skin = s; ball.material = s.mat; glassCore.visible = s.id === 'glass'; if (!quiet) { pop(s.name + ' ball · ' + s.trait); AU.chime(1); } }
+function setSkin(s, quiet) { P.skin = s; ball.material = s.mat; glassCore.visible = s.id === 'glass'; if (!quiet) { pop(s.name + ' ball · ' + s.trait); AU.chime(1); mEvent('skin'); } }
 function groundAt(x, z, yBall) {
   let best = null;
   for (const s of track) { if (z > s.z0 + 0.3 || z < s.z1 - 0.3) continue; if (Math.abs(x - s.x) > s.w / 2 + 0.05) continue; if (yBall < s.y - 0.4) continue; if (!best || s.y > best.y) best = s; }
@@ -351,10 +396,19 @@ function update(dt) {
   S.t += dt;
   const sk = P.skin, giant = S.fx.giant > 0;
   // speed rises over the run; boosts and skins change it
-  let target = (9 + 13 * (1 - Math.exp(-S.t / 120))) * (sk.speed || 1) * (S.fx.boost > 0 ? 1.55 : 1);
-  P.vz = lerp(P.vz, -target, 1 - Math.exp(-dt * 1.5));
-  const steerIn = steer(), grip = (sk.grip || 1) * (P.ground ? 1 : 0.35);
-  P.vx = lerp(P.vx, steerIn * (6 + target * 0.25), 1 - Math.exp(-dt * 4 * grip));
+  const boostK = (sk.speed || 1) * (S.fx.boost > 0 ? 1.55 : 1), grip = (sk.grip || 1) * (P.ground ? 1 : 0.35);
+  let target;
+  if (cfg.ctl === 'swipe') { // you control the speed: swipe up to go, down to brake, keep going down to reverse
+    if (inp.ku) S.tv = Math.max(S.tv - 12 * dt, -15); if (inp.kd) S.tv = Math.min(S.tv + 14 * dt, 5);
+    if (!TC.down && !inp.ku && !inp.kd) S.tv = S.tv < 0 ? Math.min(0, S.tv + 0.6 * dt) : Math.max(0, S.tv - 2 * dt);
+    target = Math.abs(S.tv) * boostK; P.vz = lerp(P.vz, S.tv * boostK, 1 - Math.exp(-dt * 3));
+    const lat = TC.down ? clamp(TC.vx, -1, 1) * 9 : ((inp.kr ? 1 : 0) - (inp.kl ? 1 : 0)) * 7;
+    P.vx = lerp(P.vx, lat, 1 - Math.exp(-dt * 6 * grip));
+  } else {
+    target = (7 + 9 * (1 - Math.exp(-S.t / 120))) * boostK;
+    P.vz = lerp(P.vz, -target, 1 - Math.exp(-dt * 1.5));
+    P.vx = lerp(P.vx, steer() * (6 + target * 0.25), 1 - Math.exp(-dt * 4 * grip));
+  }
   if (inp.jump && P.ground) { P.vy = 7.2 * (sk.jump || 1); P.ground = null; AU.tone(330, 0.18, 0.08, 'triangle'); }
   inp.jump = false;
   P.vy -= 22 * dt;
@@ -377,20 +431,23 @@ function update(dt) {
     if (d2 < (1.1 * P.scale) ** 2 && Math.abs(dy) < 1.4 * P.scale) take(it); }
   // fall: shield brings you back once
   if (P.y < (S.lastSafe ? S.lastSafe.y : 0) - 14) {
-    if (S.fx.shield > 0 && S.lastSafe) { S.fx.shield = 0; const s = S.lastSafe; P.x = s.x; P.z = Math.min(P.z + 6, s.z0 - 2); if (P.z < s.z1 + 1) P.z = s.z1 + 2; P.y = s.y + 3; P.vy = 0; P.vx = 0; pop('Shield saved you'); AU.chime(2); }
-    else return over();
+    const s = S.lastSafe || track[0];
+    if (S.fx.shield > 0) { S.fx.shield = 0; pop('Shield saved you'); } else { S.falls++; pop('Back to checkpoint'); }
+    P.x = s.x; P.z = Math.min(s.z0 - 1.5, Math.max(P.z + 4, s.z1 + 2)); P.y = s.y + 2.5; P.vy = 0; P.vx = 0; S.tv = 0; if (cfg.ctl !== 'swipe') P.vz *= 0.4; AU.chime(2);
   }
   for (const k in S.fx) S.fx[k] = Math.max(0, S.fx[k] - dt);
   P.scale = lerp(P.scale, giant ? 1.8 : 1, 1 - Math.exp(-dt * 6));
-  S.dist = Math.max(S.dist, -P.z); S.top = Math.max(S.top, -P.vz);
+  S.dist = Math.max(S.dist, -P.z); S.top = Math.max(S.top, Math.abs(P.vz));
+  if (S.finishZ != null && P.z < S.finishZ) return win();
   // stream the track
-  while (T.z > P.z - 200) addSegment(false);
+  while (T.z > P.z - 200 && !T.done) addSegment(false);
   while (track.length && track[0].z1 > P.z + 40) dropSeg(track.shift());
   for (let i = items.length - 1; i >= 0; i--) if (items[i].z > P.z + 30 || !items[i].alive) { if (items[i].alive) dropItem(items[i]); items.splice(i, 1); }
 }
 function take(it) {
   it.alive = false; dropItem(it);
-  if (it.type === 'coin') { const n = (S.fx.x2 > 0 ? 2 : 1) * (P.skin.coin || 1); S.coins += n; AU.coin(); return; }
+  if (it.type === 'coin') { const n = (S.fx.x2 > 0 ? 2 : 1) * (P.skin.coin || 1); S.coins += n; AU.coin(); mEvent('coins'); return; }
+  mEvent('power');
   const names = { x2: 'Double coins', magnet: 'Coin magnet', shield: 'Shield', giant: 'Giant ball', slow: 'Slow motion' }, dur = { x2: 12, magnet: 10, shield: 30, giant: 7, slow: 6 };
   fx(it.type, dur[it.type]); pop(names[it.type]); AU.chime(0);
 }
@@ -420,8 +477,9 @@ function animateObs(t) {
 /* ---------- 7. input ---------- */
 const inp = { kl: false, kr: false, tl: false, tr: false, tilt: 0, base: null, tiltSeen: false, jump: false };
 addEventListener('keydown', e => { AU.init(); if (e.code === 'ArrowLeft' || e.code === 'KeyA') inp.kl = true; if (e.code === 'ArrowRight' || e.code === 'KeyD') inp.kr = true;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { if (!e.repeat) inp.jump = true; e.preventDefault(); } if (e.code === 'Escape' || e.code === 'KeyP') S.state === 'play' ? pause() : S.state === 'pause' && resume(); });
-addEventListener('keyup', e => { if (e.code === 'ArrowLeft' || e.code === 'KeyA') inp.kl = false; if (e.code === 'ArrowRight' || e.code === 'KeyD') inp.kr = false; });
+  if (e.code === 'Space' || (cfg.ctl !== 'swipe' && (e.code === 'ArrowUp' || e.code === 'KeyW'))) { if (!e.repeat) inp.jump = true; e.preventDefault(); } if (e.code === 'Escape' || e.code === 'KeyP') S.state === 'play' ? pause() : S.state === 'pause' && resume(); });
+addEventListener('keyup', e => { if (e.code === 'ArrowLeft' || e.code === 'KeyA') inp.kl = false; if (e.code === 'ArrowRight' || e.code === 'KeyD') inp.kr = false; if (e.code === 'ArrowUp' || e.code === 'KeyW') inp.ku = false; if (e.code === 'ArrowDown' || e.code === 'KeyS') inp.kd = false; });
+addEventListener('keydown', e => { if (cfg.ctl !== 'swipe') return; if (e.code === 'ArrowUp' || e.code === 'KeyW') inp.ku = true; if (e.code === 'ArrowDown' || e.code === 'KeyS') inp.kd = true; });
 const zone = (el, k) => { el.addEventListener('pointerdown', e => { e.preventDefault(); inp[k] = true; try { el.setPointerCapture(e.pointerId); } catch (_) {} }); const up = () => inp[k] = false; ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, up)); };
 zone($('#zl'), 'tl'); zone($('#zr'), 'tr');
 $('#bJump').addEventListener('pointerdown', e => { e.preventDefault(); inp.jump = true; $('#bJump').classList.add('on'); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('#bJump').addEventListener(ev, () => $('#bJump').classList.remove('on')));
@@ -447,7 +505,7 @@ const AU = { ctx: null,
 /* ---------- 9. loop, weather, camera, HUD ---------- */
 const H = { dist: $('#hDist'), coins: $('#hCoins'), fx: $('#hFx'), wx: $('#wx'), pop: $('#pop'), hint: $('#hint'), flash: $('#flash') };
 let popT = 0; function pop(t) { H.pop.textContent = t; H.pop.style.opacity = 1; popT = 1.6; }
-const show = id => ['#scrTitle', '#scrPause', '#scrOver'].forEach(s => $(s).hidden = s !== id);
+const show = id => ['#scrTitle', '#scrPause', '#scrOver', '#scrTut', '#scrWin'].forEach(s => $(s).hidden = s !== id);
 const WX_DUR = 34, WX_BLEND = 6;
 let bakedFor = -1;
 function updateWeather(dt) {
@@ -484,12 +542,12 @@ function render(dt) {
     else if (it.type === 'gate') { it.meshes[1].rotation.y = t; } }
   animateObs(S.t);
   // camera: behind and above, eases with speed; slow-mo widens time
-  const sp = -P.vz, back = 6.2 + sp * 0.08 + (P.scale - 1) * 3, up = 2.8 + (P.scale - 1) * 2;
+  const sp = Math.abs(P.vz), portrait = innerHeight > innerWidth, back = (portrait ? 8.5 : 7) + sp * 0.05 + (P.scale - 1) * 3, up = (portrait ? 5.4 : 4) + (P.scale - 1) * 2;
   const tgt = S.state === 'title' ? new THREE.Vector3(P.x + Math.sin(S.t * 0.25) * 6, P.y + 2.2, P.z + Math.cos(S.t * 0.25) * 6) : new THREE.Vector3(P.x * 0.7, Math.max(P.y, gy + r) + up, P.z + back);
   camPos.lerp(tgt, 1 - Math.exp(-dt * (S.state === 'over' ? 1 : 5))); camera.position.copy(camPos);
   if (S.shake > 0) { camera.position.x += rnd(-1, 1) * S.shake * 0.2; camera.position.y += rnd(-1, 1) * S.shake * 0.15; S.shake = Math.max(0, S.shake - dt * 2.5); }
   camLook.lerp(S.state === 'title' ? ball.position : new THREE.Vector3(P.x * 0.85, Math.max(P.y, gy) + 0.2, P.z - 8), 1 - Math.exp(-dt * 8)); camera.lookAt(camLook);
-  camera.fov = lerp(camera.fov, 55 + clamp((sp - 9) / 14, 0, 1) * 9 + (S.fx.boost > 0 ? 8 : 0), 1 - Math.exp(-dt * 3)); camera.updateProjectionMatrix();
+  camera.fov = lerp(camera.fov, (portrait ? 66 : 55) + clamp((sp - 9) / 14, 0, 1) * 7 + (S.fx.boost > 0 ? 8 : 0), 1 - Math.exp(-dt * 3)); camera.updateProjectionMatrix();
   sky.position.copy(camera.position);
   sun.position.copy(ball.position).addScaledVector(W.cur.sunDir, 40); sun.position.y = Math.max(sun.position.y, ball.position.y + 12); sun.target.position.set(P.x, gy, P.z - 6);
   renderer.render(scene, camera);
@@ -497,17 +555,79 @@ function render(dt) {
 const FXUI = { x2: ['×2 coins', '#ffc24a'], magnet: ['Magnet', '#ff5a5a'], shield: ['Shield', '#5ad8ff'], giant: ['Giant', '#b07aff'], slow: ['Slow-mo', '#6a8cff'], boost: ['Boost', '#ff8a2a'] };
 let hudT = 0;
 function hud(dt) { hudT += dt; if (hudT < 0.1) return; hudT = 0; H.dist.textContent = Math.floor(S.dist); H.coins.textContent = S.coins;
+  $('#pFill').style.width = clamp(S.dist / S.levelLen, 0, 1) * 100 + '%'; $('#pLbl').textContent = 'Level ' + S.level + ' · ' + Math.round(clamp(S.dist / S.levelLen, 0, 1) * 100) + '%';
   let html = ''; for (const k in FXUI) if (S.fx[k] > 0) html += `<div class="chip" style="color:${FXUI[k][1]}"><span style="color:#fff">${FXUI[k][0]}</span><span class="bar"><i style="width:${Math.min(100, S.fx[k] / ({ x2: 12, magnet: 10, shield: 30, giant: 7, slow: 6, boost: 2.6 }[k]) * 100)}%"></i></span></div>`;
   html += `<div class="chip" style="color:#ccc"><span style="color:#fff">${P.skin.name}</span>${P.ground ? '<span style="opacity:.7">· ' + SURF[P.ground.surf].name + '</span>' : ''}</div>`;
   H.fx.innerHTML = html; if (popT > 0) { popT -= 0.1; if (popT <= 0) H.pop.style.opacity = 0; } }
+const TUT = {
+  tilt: { name: 'Tilt', hand: 'tilt', steps: ['The ball rolls forward by itself.', 'Tilt your phone left and right to steer.', 'Tap JUMP to hop over gaps. Grab coins and orbs, and dodge the moving obstacles.'] },
+  tap: { name: 'Tap sides', hand: 'tap', steps: ['The ball rolls forward by itself.', 'Hold the left or right side of the screen to steer (arrow keys on a laptop).', 'Tap JUMP to hop gaps. Grab coins and orbs, and dodge obstacles.'] },
+  swipe: { name: 'Swipe', hand: 'swipe', steps: ['Put your finger on or near the ball.', 'Swipe up to roll forward, swipe down to slow down and stop. Keep swiping down to reverse.', 'Drag left or right to steer. Tap JUMP to hop gaps.'] } };
+function showTut(after) {
+  const t = TUT[cfg.ctl]; $('#tutMode').textContent = 'How to play · ' + t.name;
+  $('#tutHand').className = 'hand ' + t.hand; $('#tutPhone').className = 'phone' + (t.hand === 'tilt' ? ' on' : '');
+  $('#tutSteps').innerHTML = ''; t.steps.forEach(x => { const li = document.createElement('li'); li.textContent = x; $('#tutSteps').appendChild(li); });
+  S.state = 'tut'; show('#scrTut'); $('#tutGo').onclick = () => { store.set('tut_' + cfg.ctl, 1); after(); };
+}
 async function start() {
   AU.init();
-  if (cfg.ctl === 'tilt' && touch && !(await askTilt())) { cfg.ctl = 'touch'; saveCfg(); paintOpts(); }
-  try { if (touch && document.documentElement.requestFullscreen && !document.fullscreenElement) { await document.documentElement.requestFullscreen(); await screen.orientation.lock('landscape'); } } catch (e) {}
-  inp.base = null; reset(); S.state = 'play'; show(null); $('#hud').hidden = false; camPos.set(0, 3, 7); W.seen = 1;
-  $('#zones').style.pointerEvents = (cfg.ctl === 'touch' || !touch) ? 'auto' : 'none';
-  H.hint.textContent = touch ? (cfg.ctl === 'tilt' ? 'Tilt to steer · JUMP over gaps' : 'Hold left or right to steer · JUMP over gaps') : '← → steer · Space to jump'; H.hint.style.opacity = 1; setTimeout(() => H.hint.style.opacity = 0, 4000);
+  if (cfg.ctl === 'tilt' && touch && !(await askTilt())) { cfg.ctl = 'tap'; saveCfg(); paintOpts(); }
+  if (!store.get('tut_' + cfg.ctl, 0)) return showTut(start);
+  try { if (touch && document.documentElement.requestFullscreen && !document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch (e) {}
+  inp.base = null; reset(); S.state = 'play'; show(null); $('#hud').hidden = false; camPos.set(0, 4, 8); W.seen = 1;
+  $('#zones').style.pointerEvents = cfg.ctl === 'tap' ? 'auto' : 'none';
+  H.hint.textContent = { tilt: 'Tilt to steer · JUMP over gaps', tap: touch ? 'Hold left or right to steer · JUMP over gaps' : '← → steer · Space to jump', swipe: touch ? 'Swipe up on the ball to roll · down to brake' : '↑ roll · ↓ brake/reverse · ← → steer · Space jump' }[cfg.ctl];
+  H.hint.style.opacity = 1; setTimeout(() => H.hint.style.opacity = 0, 4500);
 }
+function win() {
+  S.state = 'win'; const lv = S.level; mEvent('win');
+  store.set('level', lv + 1); store.set('total', store.get('total', 0) + S.coins); AU.chime(0); AU.chime(1);
+  $('#wTitle').textContent = 'Level ' + lv; $('#wTime').textContent = S.t.toFixed(1) + ' s'; $('#wCoins').textContent = S.coins; $('#wFalls').textContent = S.falls; $('#wTotal').textContent = store.get('total', 0);
+  renderMissions('#wMissions'); $('#tBest').textContent = 'LEVEL ' + (lv + 1); setTimeout(() => S.state === 'win' && show('#scrWin'), 700);
+}
+/* missions: three at a time, saved on the device */
+const MT = {
+  coins: { txt: n => `Collect ${n} coins in one level`, n: () => 20 + (store.get('level', 1) % 6) * 5, prog: () => S.coins },
+  nofall: { txt: () => 'Finish a level without falling', n: () => 1 },
+  power: { txt: n => `Grab ${n} power-ups`, n: () => 3 },
+  skin: { txt: () => 'Change your ball at a gate', n: () => 1 },
+  fast: { txt: n => `Finish a level in under ${n} s`, n: () => Math.round((200 + store.get('level', 1) * 70) / 8) },
+  levels: { txt: n => `Complete ${n} levels`, n: () => 2 } };
+let MS = store.get('missions', null);
+function newMission(ex) { const ids = Object.keys(MT).filter(k => !ex.includes(k)); const id = pick(ids); return { id, n: MT[id].n(), p: 0 }; }
+if (!MS) { MS = []; while (MS.length < 3) MS.push(newMission(MS.map(m => m.id))); store.set('missions', MS); }
+function mEvent(type) {
+  let changed = false;
+  for (let i = 0; i < MS.length; i++) { const m = MS[i]; let before = m.p;
+    if (m.id === 'coins' && type === 'coins') m.p = Math.max(m.p, S.coins);
+    if (m.id === 'power' && type === 'power') m.p++;
+    if (m.id === 'skin' && type === 'skin') m.p++;
+    if (type === 'win') { if (m.id === 'nofall' && S.falls === 0) m.p = 1; if (m.id === 'fast' && S.t < m.n) m.p = m.n; if (m.id === 'levels') m.p++; }
+    if (m.id === 'coins' && type === 'win') m.p = Math.max(m.p, S.coins);
+    if (m.p !== before) changed = true;
+    if (m.p >= m.n) { pop('Mission done · ' + MT[m.id].txt(m.n)); AU.chime(1); store.set('mdone', store.get('mdone', 0) + 1); MS[i] = newMission(MS.map(x => x.id)); changed = true; } }
+  if (changed) store.set('missions', MS);
+}
+function renderMissions(sel) { const el = $(sel); el.innerHTML = ''; for (const m of MS) { const d = document.createElement('div'); d.className = 'm'; const a = document.createElement('span'); a.textContent = MT[m.id].txt(m.n); const b = document.createElement('span'); b.textContent = Math.min(m.p, m.n) + '/' + m.n; d.append(a, b); el.appendChild(d); } }
+/* swipe control: start on or near the ball, then swipe in any direction */
+const TC = { down: false, id: null, lx: 0, ly: 0, lt: 0, vx: 0 };
+const ballScreen = () => { const v = ball.position.clone().project(camera); return [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]; };
+addEventListener('pointerdown', e => {
+  if (S.state !== 'play' || cfg.ctl !== 'swipe' || e.target.closest('button')) return;
+  const [bx, by] = ballScreen(), near = Math.hypot(e.clientX - bx, e.clientY - by) < Math.max(130, Math.min(innerWidth, innerHeight) * 0.3);
+  if (!near) { pop('Start your swipe on the ball'); return; }
+  Object.assign(TC, { down: true, id: e.pointerId, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0 });
+});
+addEventListener('pointermove', e => {
+  if (!TC.down || e.pointerId !== TC.id) return;
+  const now = performance.now(), dt = Math.max(8, now - TC.lt) / 1000, dx = e.clientX - TC.lx, dy = e.clientY - TC.ly;
+  S.tv = clamp(S.tv + dy / Math.min(innerHeight, 700) * 26, -15, 5);   // up = faster forward, down = brake, then reverse
+  TC.vx = lerp(TC.vx, dx / dt / innerWidth * 1.6, 0.5);
+  Object.assign(TC, { lx: e.clientX, ly: e.clientY, lt: now });
+});
+const tcUp = e => { if (e.pointerId === TC.id) { TC.down = false; TC.vx = 0; } };
+addEventListener('pointerup', tcUp); addEventListener('pointercancel', tcUp);
+
 function pause() { if (S.state !== 'play') return; S.state = 'pause'; show('#scrPause'); }
 function resume() { S.state = 'play'; show(null); last = performance.now(); }
 function over() { S.state = 'over'; const d = Math.floor(S.dist), best = Math.max(store.get('best', 0), d); store.set('best', best); AU.whoosh();
@@ -527,7 +647,8 @@ function step(dt) {
 function frame(now) { requestAnimationFrame(frame); if (now - last < 1000 / 61) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; step(dt); }
 
 function paintOpts() { document.querySelectorAll('#sCtl button').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.ctl)); document.querySelectorAll('#sQ button').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.q));
-  $('#how').textContent = 'Roll as far as you can. The track changes surface, the weather never stops changing, and some pieces have guard rails. Drive through a gate to swap your ball: each material has its own trait.'; }
+  $('#how').textContent = { tilt: 'Tilt to steer, the ball rolls on its own.', tap: 'Hold the left or right side to steer, the ball rolls on its own.', swipe: 'Swipe up on the ball to roll, down to brake or reverse, sideways to steer.' }[cfg.ctl] + ' Works in landscape or upright. Reach the finish line of each level.';
+  renderMissions('#tMissions'); }
 document.querySelectorAll('#sCtl button').forEach(b => b.addEventListener('click', () => { cfg.ctl = b.dataset.v; saveCfg(); paintOpts(); }));
 document.querySelectorAll('#sQ button').forEach(b => b.addEventListener('click', () => { if (cfg.q === b.dataset.v) return; cfg.q = b.dataset.v; saveCfg(); location.reload(); }));
 const toMenu = () => { S.state = 'title'; $('#hud').hidden = true; reset(); show('#scrTitle'); };
@@ -535,8 +656,10 @@ $('#bPlay').addEventListener('click', start); $('#oAgain').addEventListener('cli
 $('#pResume').addEventListener('click', resume); $('#pRecal').addEventListener('click', () => { inp.base = null; resume(); }); $('#pMenu').addEventListener('click', toMenu);
 $('#bPause').addEventListener('click', pause); $('#bSnd').addEventListener('click', () => { cfg.snd = !cfg.snd; saveCfg(); AU.set(cfg.snd); $('#bSnd').style.opacity = cfg.snd ? 1 : 0.45; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-$('#tBest').textContent = 'BEST ' + store.get('best', 0) + ' m';
-if (location.search.indexOf('debug') >= 0) window.__mo = { S, P, W, WX, track, items, inp, SKINS, setSkin, fx, step(sec) { for (let i = 0; i < sec * 60; i++) step(1 / 60); }, cam: camPos };
+$('#tBest').textContent = 'LEVEL ' + store.get('level', 1);
+$('#bHow').addEventListener('click', () => showTut(() => { S.state = 'title'; show('#scrTitle'); }));
+$('#wNext').addEventListener('click', start); $('#wMenu').addEventListener('click', () => { toMenu(); paintOpts(); });
+if (location.search.indexOf('debug') >= 0) window.__mo = { S, P, W, WX, track, items, inp, SKINS, setSkin, fx, TC, MS: () => MS, step(sec) { for (let i = 0; i < sec * 60; i++) step(1 / 60); }, cam: camPos };
 paintOpts(); resize(); reset(); updateWeather(0);
 requestAnimationFrame(frame);
 })();
