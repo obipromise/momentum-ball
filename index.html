@@ -169,7 +169,7 @@ function reset() {
 }
 const ground = (x, z, y) => track.filter(s => z <= s.z0 + .3 && z >= s.z1 - .3 && Math.abs(x - s.x) <= s.w / 2 && y >= s.y - .4).sort((a, b) => b.y - a.y)[0];
 function update(dt) {
-  S.t += dt; const sk = P.skin.t, tgt = (7 + 8 * (1 - Math.exp(-S.t / 100))) * (sk === 'extra speed' ? 1.12 : 1) * (S.fx.boost > 0 ? 1.5 : 1), grip = (sk === 'extra grip' ? 1.5 : 1) * (P.g ? 1 : .35);
+  S.t += dt; const sk = P.skin.t, tgt = Math.min(24, (10 + 6 * (1 - Math.exp(-S.t / 25))) * (1 + (S.lvl - 1) * .08)) * (sk === 'extra speed' ? 1.12 : 1) * (S.fx.boost > 0 ? 1.5 : 1), grip = (sk === 'extra grip' ? 1.5 : 1) * (P.g ? 1 : .35);
   P.vz = lp(P.vz, -tgt, 1 - Math.exp(-dt * 1.5)); P.vx = lp(P.vx, steer() * (6 + tgt * .25), 1 - Math.exp(-dt * 4 * grip));
   if (inp.jump && P.g) { P.vy = 7.5; P.g = null; } inp.jump = false;
   P.vy -= 22 * dt; P.x += P.vx * dt; P.y += P.vy * dt; P.z += P.vz * dt;
@@ -178,9 +178,11 @@ function update(dt) {
   if (g && P.y < g.y + 1.6) g.rails.forEach((on, i) => { const lim = g.x + (i ? 1 : -1) * (g.w / 2 - .25 - BR); if (on && (i ? P.x > lim : P.x < lim)) { P.x = lim; P.vx *= -.35; } });
   for (const s of track) for (const o of s.obs) { let cx, cz; if (o.type === 'push') { cx = cl(P.x, o.m.position.x - .9, o.m.position.x + .9); cz = cl(P.z, o.z - .55, o.z + .55); }
     else { const a = o.m.rotation.y, ux = Math.cos(a), uz = -Math.sin(a), t = cl((P.x - s.x) * ux + (P.z - o.z) * uz, -o.len, o.len); cx = s.x + ux * t; cz = o.z + uz * t; }
-    const dx = P.x - cx, dz = P.z - cz, d = Math.hypot(dx, dz), r = BR + (o.type === 'spin' ? .2 : 0); if (!(d < r) || d < 1e-4 || P.y > s.y + 2) continue;
-    if (S.fx.shield > 0) { S.fx.shield = 0; pop('Shield blocked it'); o.cd = S.t + 1; continue; } if (o.cd > S.t) continue;
-    P.x = cx + dx / d * r; P.z = cz + dz / d * r; P.vx += dx / d * 4.5; o.cd = S.t + .4; }
+    const dx = P.x - cx, dz = P.z - cz, d = Math.hypot(dx, dz), r = BR + (o.type === 'spin' ? .2 : 0); if (!(d < r) || P.y > s.y + 2) continue;
+    const nx = d < 1e-4 ? Math.sign(P.x - o.m.position.x) || 1 : dx / d, nz = d < 1e-4 ? 0 : dz / d;
+    P.x = cx + nx * r; P.z = cz + nz * r; if (nz > .4) P.vz = Math.max(P.vz, 2.5);  // always solid: push the ball out
+    if (o.cd > S.t) continue; o.cd = S.t + .4;
+    if (S.fx.shield > 0) { S.fx.shield = 0; pop('Shield blocked it'); continue; } P.vx += nx * 5; pop('Bump!'); }
   for (const it of items) { if (it.gone) continue; const dx = it.x - P.x, dz = it.z - P.z;
     if (it.type === 'coin' && S.fx.magnet > 0 && Math.abs(dz) < 12) { it.x -= dx * dt * 6; it.z -= dz * dt * 6; it.m.position.set(it.x, it.m.position.y, it.z); }
     if (dx * dx + dz * dz > (it.type === 'gate' ? 6 : 1.3) || Math.abs(it.y + .8 - P.y) > 2.5) continue;
