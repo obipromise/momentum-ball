@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ball game concepts</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#9ad}canvas{display:block;width:100%;height:100%}
+#lbl{position:fixed;left:18px;bottom:14px;font:800 22px system-ui,sans-serif;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.55)}</style></head>
+<body><canvas id="c"></canvas><div id="lbl"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* Art-direction concepts for a sky-track ball rolling game. Open with ?c=0..5. Not the game. */
+(() => {
+const PI = Math.PI, R2 = PI / 2;
+const T = [
+  { name: '1. Candy Sky', sky: ['#4fb0ff', '#ffd6ec'], fog: '#ffd6ec', top: '#ffffff', side: '#ff5fa8', stripe: '#ffb3d6', obs: '#ff4f8b', obs2: '#ffd23f', ball: ['#ff5aa8', '#ffffff'], deco: 'clouds', sun: 2.6 },
+  { name: '2. Neon Space', sky: ['#05030f', '#2a0f4a'], fog: '#1a0b33', top: '#1d2240', side: '#00e5ff', stripe: '#ff3fd2', obs: '#ff3fd2', obs2: '#00e5ff', ball: ['#00e5ff', '#0b0f2a'], deco: 'space', sun: 1.2, glow: true },
+  { name: '3. Tropical Islands', sky: ['#2f9cf0', '#d6f2ff'], fog: '#d6f2ff', top: '#7ccf5a', side: '#b98a55', stripe: '#9be078', obs: '#ff7a2e', obs2: '#ffd23f', ball: ['#ffffff', '#ff4a2a'], deco: 'islands', sun: 2.6 },
+  { name: '4. Toy Factory', sky: ['#5aa9ff', '#e8f3ff'], fog: '#e8f3ff', top: '#ffd23f', side: '#2f7bff', stripe: '#ffe68a', obs: '#e8322e', obs2: '#22c37a', ball: ['#e8322e', '#ffd23f'], deco: 'toys', sun: 2.5 },
+  { name: '5. Ice Palace', sky: ['#7fb8ff', '#f2f9ff'], fog: '#eef7ff', top: '#eaf6ff', side: '#7cc4ff', stripe: '#cfeaff', obs: '#4fa8ff', obs2: '#ffffff', ball: ['#a8e6ff', '#ffffff'], deco: 'ice', sun: 2.3 },
+  { name: '6. Lava Temple', sky: ['#2a0f0a', '#ff7a3a'], fog: '#5a1e10', top: '#a89580', side: '#5a4638', stripe: '#c9b49a', obs: '#ff5a1f', obs2: '#ffd23f', ball: ['#ffb020', '#3a1a0a'], deco: 'lava', sun: 1.8, glow: true }
+];
+const C = T[+(new URLSearchParams(location.search).get('c') || 0)] || T[0];
+document.getElementById('lbl').textContent = C.name;
+const lin = h => new THREE.Color(h).convertSRGBToLinear();
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(52, 1, 0.1, 2000);
+const cv = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t; };
+scene.background = cv(4, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, C.sky[0]); gr.addColorStop(1, C.sky[1]); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+scene.fog = new THREE.Fog(lin(C.fog), 90, 320);
+scene.environment = new THREE.PMREMGenerator(renderer).fromEquirectangular((() => { const t = cv(256, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, C.sky[0]); gr.addColorStop(0.5, '#ffffff'); gr.addColorStop(1, C.sky[1]); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); t.mapping = THREE.EquirectangularReflectionMapping; return t; })()).texture;
+scene.add(new THREE.HemisphereLight(lin(C.sky[1]), lin('#556677'), C.glow ? 0.5 : 0.45));
+const sun = new THREE.DirectionalLight(0xfff4e6, C.sun); sun.position.set(-18, 30, 14); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 120 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.target.position.set(0, 0, -25); scene.add(sun, sun.target);
+const M = (h, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: lin(h), roughness: 0.45 }, o));
+const add = (geo, mat, x, y, z, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+const rnd = (a, b) => a + Math.random() * (b - a);
+// rounded slab: the basic track piece (top surface + coloured rounded sides)
+function slab(w, l, x, y, z, ry = 0, h = 1.1) {
+  const s = new THREE.Shape(), r = Math.min(0.9, w / 3); s.moveTo(-w / 2 + r, -l / 2); s.lineTo(w / 2 - r, -l / 2); s.quadraticCurveTo(w / 2, -l / 2, w / 2, -l / 2 + r); s.lineTo(w / 2, l / 2 - r); s.quadraticCurveTo(w / 2, l / 2, w / 2 - r, l / 2); s.lineTo(-w / 2 + r, l / 2); s.quadraticCurveTo(-w / 2, l / 2, -w / 2, l / 2 - r); s.lineTo(-w / 2, -l / 2 + r); s.quadraticCurveTo(-w / 2, -l / 2, -w / 2 + r, -l / 2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 0.18, bevelSegments: 4, curveSegments: 12 }); g.rotateX(R2); g.translate(0, 0, 0);
+  const top = cv(128, 512, (c, W, H) => { c.fillStyle = C.top; c.fillRect(0, 0, W, H); c.fillStyle = C.stripe; for (let i = 0; i < 8; i++) c.fillRect(0, i * 64, W, 30); c.fillStyle = C.side; c.fillRect(0, 0, 10, H); c.fillRect(W - 10, 0, 10, H); });
+  top.wrapS = top.wrapT = THREE.RepeatWrapping; top.repeat.set(1 / w, 1 / 8); top.offset.set(0.5, 0);
+  const m = add(g, [M(C.top, { map: top, roughness: 0.4 }), M(C.side, { roughness: 0.3, emissive: C.glow ? lin(C.side) : 0, emissiveIntensity: C.glow ? 0.6 : 0 })], x, y, z, ry);
+  return m;
+}
+// track layout: start pad, narrow bridge, stepping tiles, wide arena with a spinner
+slab(8, 18, 0, 0, 0);
+slab(3, 14, 0, 0, -17);
+slab(5, 5, -2.5, 0, -27.5); slab(5, 5, 2.8, -0.6, -34); slab(5, 5, -1.5, -1.2, -40.5);
+slab(14, 16, 0, -1.2, -54);
+slab(4, 18, 6, -1.2, -70, 0.5);
+// obstacles
+const obs = M(C.obs, { roughness: 0.25, metalness: 0.1, emissive: C.glow ? lin(C.obs) : 0, emissiveIntensity: C.glow ? 0.5 : 0 }), obs2 = M(C.obs2, { roughness: 0.25 });
+function spinner(x, y, z, len, a) { add(new THREE.CylinderGeometry(0.45, 0.6, 1.4, 20), obs2, x, y + 0.7, z); const bar = add(new THREE.CylinderGeometry(0.32, 0.32, len, 20), obs, x, y + 1.2, z, a); bar.rotation.z = R2; bar.rotation.y = a;
+  for (const s of [-1, 1]) add(new THREE.SphereGeometry(0.55, 20, 16), obs2, x + Math.cos(a) * s * len / 2, y + 1.2, z - Math.sin(a) * s * len / 2); }
+function hammer(x, y, z, ang) { add(new THREE.CylinderGeometry(0.15, 0.15, 7, 10), obs2, x - 3.2, y + 3.5, z); add(new THREE.CylinderGeometry(0.15, 0.15, 7, 10), obs2, x + 3.2, y + 3.5, z);
+  const bar = add(new THREE.CylinderGeometry(0.18, 0.18, 6.6, 10), obs2, x, y + 7, z); bar.rotation.z = R2;
+  const g = new THREE.Group(); g.position.set(x, y + 7, z); g.rotation.x = ang; scene.add(g);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4.6, 8), obs2); arm.position.y = -2.3; g.add(arm);
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 2.4, 24), obs); head.rotation.z = R2; head.position.y = -4.8; g.add(head); g.traverse(o => { o.castShadow = true; }); }
+function pusher(x, y, z) { const b = add(new THREE.BoxGeometry(2.6, 1.4, 1.2), obs, x, y + 0.75, z); }
+function gem(x, y, z) { const g = add(new THREE.OctahedronGeometry(0.45, 0), M(C.glow ? '#ffffff' : '#ffd23f', { roughness: 0.1, metalness: 0.4, emissive: lin(C.glow ? C.obs2 : '#ffb000'), emissiveIntensity: 0.4 }), x, y + 1, z); g.scale.y = 1.4; }
+function ring(x, y, z) { const r = add(new THREE.TorusGeometry(2.6, 0.28, 16, 48), M('#ffffff', { roughness: 0.2, emissive: lin(C.obs2), emissiveIntensity: 0.6 }), x, y + 3, z); }
+hammer(0, 0, -19, 0.7);
+spinner(0, -1.2, -54, 12, 0.5);
+pusher(-3.5, -1.2, -49); pusher(3.5, -1.2, -59);
+for (let i = 0; i < 5; i++) gem(0, 0, -4 - i * 2.4);
+gem(-2.5, 0, -27.5); gem(2.8, -0.6, -34); gem(-1.5, -1.2, -40.5);
+ring(6, -1.2, -66);
+// the ball
+const btex = cv(256, 128, (g, w, h) => { g.fillStyle = C.ball[0]; g.fillRect(0, 0, w, h); g.fillStyle = C.ball[1]; for (let i = 0; i < 8; i++) { g.beginPath(); g.arc(i * 32 + 16, (i % 2) * 64 + 32, 14, 0, 7); g.fill(); } g.fillRect(0, 58, w, 12); });
+const ball = add(new THREE.SphereGeometry(0.9, 48, 32), new THREE.MeshStandardMaterial({ map: btex, roughness: 0.15, metalness: 0.05, envMapIntensity: 1.3 }), 0.4, 0.9 + 0.02, 3);
+ball.rotation.set(0.6, 0.4, 0.2);
+// backdrops
+if (C.deco === 'clouds' || C.deco === 'islands' || C.deco === 'ice') for (let i = 0; i < 26; i++) { const g = new THREE.Group(); for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(rnd(3, 6), 20, 14), M(C.deco === 'ice' ? '#f4fbff' : '#ffffff', { roughness: 1, emissive: lin('#ffffff'), emissiveIntensity: 0.25 })); s.position.set(k * 4 - 8, rnd(-1, 1.5), rnd(-2, 2)); g.add(s); } g.scale.y = 0.6; g.position.set(rnd(-140, 140), rnd(-40, -8), rnd(-220, 30)); scene.add(g); }
+if (C.deco === 'islands') for (let i = 0; i < 7; i++) { const x = rnd(-120, 120), z = rnd(-240, -60), s = rnd(8, 16); const isl = add(new THREE.ConeGeometry(s, s * 1.6, 7), M('#8a6a44'), x, -30, z); isl.rotation.x = PI; add(new THREE.CylinderGeometry(s, s, 2, 24), M('#6fbf4a'), x, -21.5 + s * 0.8 - s * 0.8, z); for (let k = 0; k < 3; k++) { add(new THREE.CylinderGeometry(0.3, 0.4, 5, 8), M('#8a5a34'), x + rnd(-s / 2, s / 2), -18, z + rnd(-s / 2, s / 2)); } }
+if (C.deco === 'space') { const p = add(new THREE.SphereGeometry(60, 48, 32), M('#6a3bd0', { roughness: 0.8, emissive: lin('#3a1a80'), emissiveIntensity: 0.4 }), 90, -60, -260); const rg = add(new THREE.TorusGeometry(95, 6, 2, 96), M('#ff9be8', { emissive: lin('#ff3fd2'), emissiveIntensity: 0.6 }), 90, -60, -260); rg.rotation.x = 1.2;
+  const sp = new Float32Array(1500 * 3); for (let i = 0; i < sp.length; i++) sp[i] = rnd(-600, 600); const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, fog: false }))); }
+if (C.deco === 'toys') for (let i = 0; i < 18; i++) { const x = rnd(-90, 90), z = rnd(-200, -40), y = rnd(-40, 10); const k = i % 3; const col = ['#e8322e', '#2f7bff', '#22c37a', '#ffd23f'][i % 4];
+  if (k === 0) add(new THREE.TorusGeometry(rnd(4, 8), rnd(1, 2), 12, 6), M(col), x, y, z); else if (k === 1) add(new THREE.BoxGeometry(6, 6, 6), M(col), x, y, z, rnd(0, 3)); else add(new THREE.SphereGeometry(rnd(3, 6), 24, 16), M(col), x, y, z); }
+if (C.deco === 'ice') for (let i = 0; i < 14; i++) { const c = add(new THREE.ConeGeometry(rnd(2, 5), rnd(10, 26), 6), M('#bfe6ff', { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.85 }), rnd(-100, 100), rnd(-30, -10), rnd(-200, -40)); }
+if (C.deco === 'lava') { add(new THREE.PlaneGeometry(1200, 1200).rotateX(-R2), M('#ff5a1f', { emissive: lin('#ff3a0a'), emissiveIntensity: 1.2, roughness: 0.6 }), 0, -40, -200);
+  for (let i = 0; i < 14; i++) { const x = rnd(-120, 120), z = rnd(-240, -30); add(new THREE.CylinderGeometry(rnd(2, 4), rnd(3, 6), rnd(20, 50), 8), M('#3a2a22'), x, -30, z); } }
+// camera: behind and above the ball, looking down the track
+camera.position.set(1.6, 4.4, 9.5); camera.lookAt(0, -0.8, -16);
+function draw() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.render(scene, camera); }
+addEventListener('resize', draw); draw();
+})();
+</script></body></html>
